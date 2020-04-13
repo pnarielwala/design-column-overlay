@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "target": "es5",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "noImplicitAny": false,
+    "removeComments": true,
+    "preserveConstEnums": true,
+    "isolatedModules": false,
+    "noEmit": false,
+    "module": "esnext",
+    "outDir": "../public",
+    "declaration": false,
+    "sourceMap": false
+  },
+  "files": ["contentScript.ts", "declaration.d.ts"],
+  "exclude": ["../node_modules", "**/*.spec.ts"]
+}

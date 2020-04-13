@@ -5,8 +5,26 @@ import { Input, Switch } from '@rebass/forms'
 
 import GridForm from './components/GridForm'
 import { GridT, GridDataT } from 'types/Grid'
-import GridContainer from './components/GridContainer'
-import GridManager from './components/GridManager'
+import { useEffectOnce } from 'react-use'
+
+type Message =
+  | { type: 'update_grid'; data: GridDataT }
+  | { type: 'get_content_grid' }
+  | { type: 'grid_visible'; data: boolean }
+
+const sendTabMessage = (
+  message: Message,
+  responseCallback?: (response: any) => void,
+) => {
+  window.chrome.tabs.query(
+    { currentWindow: true, active: true },
+    (tabs: any) => {
+      const currentTabId: number = tabs[0].id
+
+      window.chrome.tabs.sendMessage(currentTabId, message, responseCallback)
+    },
+  )
+}
 
 const initialGrid: GridT = {
   columns: '1',
@@ -14,17 +32,75 @@ const initialGrid: GridT = {
   margin: '0',
 }
 
-const Popup = () => {
-  const [showGridOverlay, setShowGridOverlay] = useState(false)
+type SettingsT = {
+  grids: GridDataT
+}
 
+const getLocalSettings = (): SettingsT =>
+  JSON.parse(localStorage.getItem('gridSettings') ?? '{}')
+const setLocalSettings = (data: SettingsT) => {
+  localStorage.setItem('gridSettings', JSON.stringify(data))
+}
+
+const Popup = () => {
+  const [currentTabId, setCurrentTabId] = useState<number | null>(null)
+  const [grids, setGrids] = useState<GridDataT>(getLocalSettings().grids ?? {})
+
+  const [showGridOverlay, setShowGridOverlay] = useState(false)
   const [breakpointInput, setBreakpointInput] = useState('')
-  const [grids, setGrids] = useState<GridDataT>(
-    JSON.parse(localStorage.getItem('gridSettings') || '{}'),
-  )
+
+  // Initialize currentTabId
+  useEffectOnce(() => {
+    window.chrome.tabs.query(
+      { currentWindow: true, active: true },
+      (tabs: any) => {
+        const currentTabId: number = tabs[0].id
+        setCurrentTabId(currentTabId)
+
+        window.chrome.tabs.executeScript(
+          null,
+          { file: 'contentScript.js' },
+          () => {
+            setTimeout(() => {
+              console.log('about to send init message', Date.now())
+              sendTabMessage(
+                { type: 'get_content_grid' },
+                (response: { visible: boolean; grids: GridDataT }) => {
+                  if (response) {
+                    if (Object.keys(response.grids).length > 0) {
+                      setGrids(response.grids)
+                      setShowGridOverlay(response.visible)
+                    } else {
+                      sendTabMessage({
+                        type: 'update_grid',
+                        data: grids || {},
+                      })
+                    }
+                  }
+                },
+              )
+            }, 1)
+          },
+        )
+      },
+    )
+  })
+
+  // Save grids when popup unmounts
+  useEffect(() => {
+    setLocalSettings({
+      grids,
+    })
+  }, [grids, currentTabId])
 
   useEffect(() => {
-    localStorage.setItem('gridSettings', JSON.stringify(grids))
-  }, [grids])
+    if (currentTabId) {
+      sendTabMessage({
+        type: 'update_grid',
+        data: grids || {},
+      })
+    }
+  }, [currentTabId, grids])
 
   const handleAddGrid = () => {
     if (breakpointInput) {
@@ -58,12 +134,15 @@ const Popup = () => {
     })
   }
 
+  const handleToggleGrid = () => {
+    const newValue = !showGridOverlay
+    setShowGridOverlay(newValue)
+    sendTabMessage({ type: 'grid_visible', data: newValue })
+  }
+
   return (
     <Box>
-      <Switch
-        checked={showGridOverlay}
-        onClick={() => setShowGridOverlay(!showGridOverlay)}
-      />
+      <Switch checked={showGridOverlay} onClick={handleToggleGrid} />
       <Flex
         as="form"
         onSubmit={(event) => {
@@ -98,9 +177,6 @@ const Popup = () => {
           />
         )
       })}
-      <GridContainer>
-        {showGridOverlay && <GridManager grids={grids}></GridManager>}
-      </GridContainer>
     </Box>
   )
 }
