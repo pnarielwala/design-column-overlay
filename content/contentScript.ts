@@ -55,6 +55,7 @@ function intializeScript() {
         min-width: 0px;
         height: 100%;
         display: flex;
+        max-width: 1664px;
         margin: auto;`,
     )
 

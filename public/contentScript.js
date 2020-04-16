@@ -37,7 +37,7 @@ function intializeScript() {
         var marginBox = document.createElement('div');
         var gutterBox = document.createElement('div');
         var columnBox = document.createElement('div');
-        flexContainer.setAttribute('style', "box-sizing: border-box;\n        min-width: 0px;\n        height: 100%;\n        display: flex;\n        margin: auto;");
+        flexContainer.setAttribute('style', "box-sizing: border-box;\n        min-width: 0px;\n        height: 100%;\n        display: flex;\n        max-width: 1664px;\n        margin: auto;");
         marginBox.setAttribute('style', "box-sizing: border-box;\n        min-width: " + grid.margin + "px;\n        background-color: rgba(100, 100, 100, 0.2);\n        margin: 0px;");
         gutterBox.setAttribute('style', "box-sizing: border-box;\n        min-width: " + grid.gutter + "px;\n        background-color: rgba(100, 100, 100, 0.2);\n        margin: 0px;");
         columnBox.setAttribute('style', "box-sizing: border-box;\n        min-width: 0px;\n        background-color: rgba(255, 0, 0, 0.2);\n        width: 100%;\n        margin: 0px;");

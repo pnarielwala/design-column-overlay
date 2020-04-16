@@ -1,11 +1,21 @@
 import React, { useState, useEffect } from 'react'
 
-import { Box, Flex, Button } from 'rebass'
+import { Box, Flex, Button, Text } from 'rebass'
 import { Input, Switch } from '@rebass/forms'
 
 import GridForm from './components/GridForm'
 import { GridT, GridDataT } from 'types/Grid'
 import { useEffectOnce } from 'react-use'
+
+// Allow local development without errors
+window.chrome = {
+  tabs: {
+    query: () => {},
+    executeScript: () => {},
+    sendMessage: () => {},
+  },
+  ...window.chrome,
+}
 
 type Message =
   | { type: 'update_grid'; data: GridDataT }
@@ -49,20 +59,21 @@ const Popup = () => {
   const [showGridOverlay, setShowGridOverlay] = useState(false)
   const [breakpointInput, setBreakpointInput] = useState('')
 
-  // Initialize currentTabId
   useEffectOnce(() => {
     window.chrome.tabs.query(
       { currentWindow: true, active: true },
       (tabs: any) => {
+        // Initialize currentTabId
         const currentTabId: number = tabs[0].id
         setCurrentTabId(currentTabId)
 
+        // Inject contentScript into tabs
         window.chrome.tabs.executeScript(
           null,
           { file: 'contentScript.js' },
           () => {
             setTimeout(() => {
-              console.log('about to send init message', Date.now())
+              // Get grid status on the page
               sendTabMessage(
                 { type: 'get_content_grid' },
                 (response: { visible: boolean; grids: GridDataT }) => {
@@ -93,6 +104,7 @@ const Popup = () => {
     })
   }, [grids, currentTabId])
 
+  // Update grid setting on page
   useEffect(() => {
     if (currentTabId) {
       sendTabMessage({
@@ -142,7 +154,16 @@ const Popup = () => {
 
   return (
     <Box>
-      <Switch checked={showGridOverlay} onClick={handleToggleGrid} />
+      <Flex justifyContent="space-between" alignItems="center" mt={3}>
+        <Text fontWeight="bold" fontSize={17}>
+          Enable grid:
+        </Text>
+        <Switch checked={showGridOverlay} onClick={handleToggleGrid} />
+      </Flex>
+
+      <Text width="100%" fontWeight="bold" fontSize={21} pt={4}>
+        Breakpoints
+      </Text>
       <Flex
         as="form"
         onSubmit={(event) => {
@@ -150,9 +171,11 @@ const Popup = () => {
           handleAddGrid()
         }}
         flexWrap="wrap"
+        my={3}
+        pt={2}
         mx={-2}
       >
-        <Box width={1 / 2} px={2}>
+        <Box width={1 / 3} px={2}>
           <Input
             value={breakpointInput}
             type="number"
@@ -160,9 +183,9 @@ const Popup = () => {
             onChange={(event) => setBreakpointInput(event.target.value)}
           />
         </Box>
-        <Box width={1 / 2} px={2}>
+        <Box width={2 / 3} px={2}>
           <Button width={1} type="submit">
-            Add
+            Add breakpoint
           </Button>
         </Box>
       </Flex>
