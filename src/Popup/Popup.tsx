@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react'
+import { ChromePicker } from 'react-color'
 
 import { Box, Flex, Button, Text } from 'rebass'
-import { Input, Switch } from '@rebass/forms'
+import { Input, Switch, Label } from '@rebass/forms'
 
 import GridForm from './components/GridForm'
-import { GridT, GridDataT, Message } from 'types'
+import { GridT, GridDataT, Message, StoredDataT, SettingsT } from 'types'
 import { useEffectOnce } from 'react-use'
 
 // Allow local development without errors
@@ -37,22 +38,30 @@ const initialGrid: GridT = {
   margin: '0',
 }
 
-type SettingsT = {
-  grids: GridDataT
-}
+const DEFAULT_MAX_WIDTH = '1664'
 
-const getLocalSettings = (): SettingsT =>
+const getLocalSettings = (): StoredDataT =>
   JSON.parse(localStorage.getItem('gridSettings') ?? '{}')
-const setLocalSettings = (data: SettingsT) => {
+const setLocalSettings = (data: StoredDataT) => {
   localStorage.setItem('gridSettings', JSON.stringify(data))
 }
 
 const Popup = () => {
   const [currentTabId, setCurrentTabId] = useState<number | null>(null)
   const [grids, setGrids] = useState<GridDataT>(getLocalSettings().grids ?? {})
+  const [settings, setSettings] = useState<SettingsT>(
+    getLocalSettings().settings ?? {
+      maxWidth: DEFAULT_MAX_WIDTH,
+      columnColor: { r: 255, g: 0, b: 0, a: 0.2 },
+    },
+  )
 
   const [showGridOverlay, setShowGridOverlay] = useState(false)
   const [breakpointInput, setBreakpointInput] = useState('')
+
+  const [settingTab, setSettingTab] = useState<'breakpoints' | 'settings'>(
+    'breakpoints',
+  )
 
   useEffectOnce(() => {
     window.chrome.tabs.query(
@@ -71,15 +80,20 @@ const Popup = () => {
               // Get grid status on the page
               sendTabMessage(
                 { type: 'get_content_grid' },
-                (response: { visible: boolean; grids: GridDataT }) => {
+                (response: {
+                  visible: boolean
+                  grids: GridDataT
+                  settings: SettingsT
+                }) => {
                   if (response) {
                     if (Object.keys(response.grids).length > 0) {
                       setGrids(response.grids)
+                      setSettings(response.settings)
                       setShowGridOverlay(response.visible)
                     } else {
                       sendTabMessage({
                         type: 'update_grid',
-                        data: grids || {},
+                        data: { grids, settings },
                       })
                     }
                   }
@@ -92,22 +106,23 @@ const Popup = () => {
     )
   })
 
-  // Save grids when popup unmounts
+  // Save grids whenever values change
   useEffect(() => {
     setLocalSettings({
       grids,
+      settings,
     })
-  }, [grids, currentTabId])
+  }, [grids, currentTabId, settings])
 
   // Update grid setting on page
   useEffect(() => {
     if (currentTabId) {
       sendTabMessage({
         type: 'update_grid',
-        data: grids || {},
+        data: { grids, settings },
       })
     }
-  }, [currentTabId, grids])
+  }, [currentTabId, grids, settings])
 
   const handleAddGrid = () => {
     if (breakpointInput) {
@@ -156,45 +171,116 @@ const Popup = () => {
         <Switch checked={showGridOverlay} onClick={handleToggleGrid} />
       </Flex>
 
-      <Text width="100%" fontWeight="bold" fontSize={21} pt={4}>
-        Breakpoints
-      </Text>
-      <Flex
-        as="form"
-        onSubmit={(event) => {
-          event.preventDefault()
-          handleAddGrid()
-        }}
-        flexWrap="wrap"
-        my={3}
-        pt={2}
-        mx={-2}
-      >
-        <Box width={1 / 3} px={2}>
-          <Input
-            value={breakpointInput}
-            type="number"
-            autoFocus
-            onChange={(event) => setBreakpointInput(event.target.value)}
-          />
-        </Box>
-        <Box width={2 / 3} px={2}>
-          <Button width={1} type="submit">
-            Add breakpoint
-          </Button>
-        </Box>
+      <Flex alignItems="center" mt={4}>
+        <Button
+          fontWeight="bold"
+          fontSize={21}
+          mr={2}
+          sx={{
+            backgroundColor: 'transparent',
+            p: 0,
+            cursor: 'pointer',
+          }}
+          color={settingTab === 'breakpoints' ? 'black' : '#999999'}
+          onClick={() => setSettingTab('breakpoints')}
+        >
+          Breakpoints
+        </Button>
+        <Button
+          fontWeight="bold"
+          fontSize={21}
+          color={settingTab === 'settings' ? 'black' : '#999999'}
+          sx={{
+            backgroundColor: 'transparent',
+            p: 0,
+            cursor: 'pointer',
+          }}
+          onClick={() => setSettingTab('settings')}
+        >
+          Settings
+        </Button>
       </Flex>
-      {Object.entries(grids).map(([breakpoint, grid]) => {
-        return (
-          <GridForm
-            key={breakpoint}
-            breakpoint={breakpoint}
-            grid={grid}
-            updateGrid={handleUpdateGrid}
-            deleteGrid={handleDeleteGrid}
-          />
-        )
-      })}
+
+      {settingTab === 'breakpoints' && (
+        <>
+          <Flex
+            as="form"
+            onSubmit={(event) => {
+              event.preventDefault()
+              handleAddGrid()
+            }}
+            flexWrap="wrap"
+            my={3}
+            pt={2}
+            mx={-2}
+          >
+            <Box width={1 / 3} px={2}>
+              <Input
+                value={breakpointInput}
+                type="number"
+                max={Number.POSITIVE_INFINITY}
+                min={0}
+                onChange={(event) => setBreakpointInput(event.target.value)}
+              />
+            </Box>
+            <Box width={2 / 3} px={2}>
+              <Button width={1} type="submit" sx={{ cursor: 'pointer' }}>
+                Add breakpoint
+              </Button>
+            </Box>
+          </Flex>
+          {Object.entries(grids).map(([breakpoint, grid]) => {
+            return (
+              <GridForm
+                key={breakpoint}
+                breakpoint={breakpoint}
+                grid={grid}
+                updateGrid={handleUpdateGrid}
+                deleteGrid={handleDeleteGrid}
+              />
+            )
+          })}
+        </>
+      )}
+
+      {settingTab === 'settings' && (
+        <>
+          <Flex flexWrap="wrap" my={2}>
+            <Box width={1 / 3}>
+              <Label>Max width</Label>
+              <Input
+                type="number"
+                max={30000}
+                min={0}
+                value={settings.maxWidth}
+                name="maxWidth"
+                onChange={(event) => {
+                  const value = event.target.value
+                  setSettings((prevSettings) => ({
+                    ...prevSettings,
+                    maxWidth: value,
+                  }))
+                }}
+              />
+            </Box>
+            <Box width={1} mt={3}>
+              <Label>Column color</Label>
+              <Box mt={2}>
+                <ChromePicker
+                  color={settings.columnColor}
+                  onChangeComplete={(color) => {
+                    const value = color
+                    setSettings((prevSettings) => ({
+                      ...prevSettings,
+                      columnColor: value.rgb,
+                    }))
+                  }}
+                />
+              </Box>
+            </Box>
+          </Flex>
+        </>
+      )}
     </Box>
   )
 }

@@ -1,4 +1,4 @@
-import { GridDataT, GridT, Message } from '../src/types'
+import { GridDataT, GridT, Message, SettingsT } from '../src/types'
 
 declare global {
   interface Window {
@@ -8,8 +8,12 @@ declare global {
 }
 
 function intializeScript() {
+  const initSettings: SettingsT = {
+    maxWidth: '1664',
+    columnColor: { r: 255, g: 0, b: 0, a: 0.2 },
+  }
   let grids: GridDataT = {}
-  let currentGrid: GridT
+  let settings: SettingsT = initSettings
   let showGrid: boolean = false
 
   function drawGrid(grid: GridT) {
@@ -41,7 +45,7 @@ function intializeScript() {
         min-width: 0px;
         height: 100%;
         display: flex;
-        max-width: 1664px;
+        max-width: ${settings.maxWidth}px;
         margin: auto;`,
     )
 
@@ -49,7 +53,6 @@ function intializeScript() {
       'style',
       `box-sizing: border-box;
         min-width: ${grid.margin}px;
-        background-color: rgba(100, 100, 100, 0.2);
         margin: 0px;`,
     )
 
@@ -57,7 +60,6 @@ function intializeScript() {
       'style',
       `box-sizing: border-box;
         min-width: ${grid.gutter}px;
-        background-color: rgba(100, 100, 100, 0.2);
         margin: 0px;`,
     )
 
@@ -65,7 +67,9 @@ function intializeScript() {
       'style',
       `box-sizing: border-box;
         min-width: 0px;
-        background-color: rgba(255, 0, 0, 0.2);
+        background-color: rgba(${settings.columnColor.r}, ${
+        settings.columnColor.g
+      }, ${settings.columnColor.b}, ${settings.columnColor.a || 1});
         width: 100%;
         margin: 0px;`,
     )
@@ -102,9 +106,7 @@ function intializeScript() {
         }
       }) ?? sortedGrids[sortedGrids.length - 1]
 
-    if (gridEntry && currentGrid !== gridEntry[1]) {
-      currentGrid = gridEntry[1]
-    }
+    const currentGrid = gridEntry?.[1]
 
     if (showGrid && currentGrid) {
       drawGrid(currentGrid)
@@ -123,11 +125,12 @@ function intializeScript() {
 
   function messageListener(message: Message, sender: any, sendResponse: any) {
     if (message.type === 'update_grid') {
-      grids = message.data
+      grids = message.data.grids ?? {}
+      settings = message.data.settings ?? initSettings
 
       updateGrid()
     } else if (message.type === 'get_content_grid') {
-      sendResponse({ visible: showGrid, grids })
+      sendResponse({ visible: showGrid, grids, settings })
     } else if (message.type === 'grid_visible') {
       showGrid = message.data
       if (showGrid) {

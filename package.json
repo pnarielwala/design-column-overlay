@@ -17,6 +17,7 @@
     "@types/rebass__forms": "4.0.1",
     "emotion-theming": "^10.0.27",
     "react": "^16.13.1",
+    "react-color": "2.18.0",
     "react-dom": "^16.13.1",
     "react-scripts": "3.4.1",
     "react-use": "13.27.1",
@@ -47,6 +48,7 @@
     ]
   },
   "devDependencies": {
+    "@types/react-color": "3.0.1",
     "@types/rebass": "^4.0.4"
   }
 }
