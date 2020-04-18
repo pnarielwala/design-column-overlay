@@ -1,4 +1,4 @@
-import { GridDataT, GridT } from './Grid'
+import { GridDataT, GridT, Message } from '../src/types'
 
 declare global {
   interface Window {
@@ -11,43 +11,29 @@ function intializeScript() {
   let grids: GridDataT = {}
   let currentGrid: GridT
   let showGrid: boolean = false
-  let rootContainer: HTMLElement
-
-  function initGrid() {
-    const root = document.getElementById('grid-overlay-root')
-    if (!root) {
-      const container = document.createElement('div')
-
-      container.setAttribute('id', 'grid-overlay-root')
-
-      container.setAttribute(
-        'style',
-        'position: fixed; ' +
-          'top: 0; ' +
-          'bottom: 0; ' +
-          'left: 0; ' +
-          'right: 0; ' +
-          'z-index: 999999999; ' +
-          'pointer-events: none; ',
-      )
-
-      document.body.appendChild(container)
-
-      rootContainer = document.getElementById('grid-overlay-root')
-    } else {
-      rootContainer = root
-    }
-
-    if (rootContainer.children.length > 0) {
-      showGrid = true
-    }
-  }
 
   function drawGrid(grid: GridT) {
+    const existingRoot = document.getElementById('grid-overlay-root')
+    if (existingRoot) {
+      existingRoot.remove()
+    }
+    const rootContainer = document.createElement('div')
     const flexContainer = document.createElement('div')
     const marginBox = document.createElement('div')
     const gutterBox = document.createElement('div')
     const columnBox = document.createElement('div')
+
+    rootContainer.setAttribute('id', 'grid-overlay-root')
+    rootContainer.setAttribute(
+      'style',
+      'position: fixed; ' +
+        'top: 0; ' +
+        'bottom: 0; ' +
+        'left: 0; ' +
+        'right: 0; ' +
+        'z-index: 999999999; ' +
+        'pointer-events: none; ',
+    )
 
     flexContainer.setAttribute(
       'style',
@@ -84,11 +70,7 @@ function intializeScript() {
         margin: 0px;`,
     )
 
-    const root = rootContainer
-
-    root.innerHTML = ''
-
-    root.appendChild(flexContainer)
+    rootContainer.appendChild(flexContainer)
 
     flexContainer.appendChild(marginBox.cloneNode())
     ;[...Array(+grid.columns)].forEach((_, i) => {
@@ -96,9 +78,12 @@ function intializeScript() {
       i + 1 < +grid.columns && flexContainer.appendChild(gutterBox.cloneNode())
     })
     flexContainer.appendChild(marginBox.cloneNode())
+
+    document.body.appendChild(rootContainer)
   }
 
   function updateGrid() {
+    // Sort grids by breakpoint
     const sortedGrids = Object.entries(grids).sort((a, b) => {
       if (+a[0] < +b[0]) {
         return -1
@@ -106,6 +91,8 @@ function intializeScript() {
         return 1
       }
     })
+
+    // Find grid within current width
     const gridEntry =
       sortedGrids.find(([breakpoint]) => {
         if (+breakpoint > window.innerWidth) {
@@ -125,23 +112,14 @@ function intializeScript() {
   }
 
   function removeGrid() {
-    rootContainer.innerHTML = ''
+    document.getElementById('grid-overlay-root')?.remove()
   }
-
-  window.onload = initGrid
-
-  initGrid()
 
   const resizeHandler = () => {
     updateGrid()
   }
 
   window.addEventListener('resize', resizeHandler)
-
-  type Message =
-    | { type: 'update_grid'; data: GridDataT }
-    | { type: 'get_content_grid' }
-    | { type: 'grid_visible'; data: boolean }
 
   function messageListener(message: Message, sender: any, sendResponse: any) {
     if (message.type === 'update_grid') {
@@ -153,7 +131,6 @@ function intializeScript() {
     } else if (message.type === 'grid_visible') {
       showGrid = message.data
       if (showGrid) {
-        initGrid()
         updateGrid()
       } else {
         removeGrid()

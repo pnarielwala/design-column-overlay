@@ -4,7 +4,7 @@ import { Box, Flex, Button, Text } from 'rebass'
 import { Input, Switch } from '@rebass/forms'
 
 import GridForm from './components/GridForm'
-import { GridT, GridDataT } from 'types/Grid'
+import { GridT, GridDataT, Message } from 'types'
 import { useEffectOnce } from 'react-use'
 
 // Allow local development without errors
@@ -16,11 +16,6 @@ window.chrome = {
   },
   ...window.chrome,
 }
-
-type Message =
-  | { type: 'update_grid'; data: GridDataT }
-  | { type: 'get_content_grid' }
-  | { type: 'grid_visible'; data: boolean }
 
 const sendTabMessage = (
   message: Message,
