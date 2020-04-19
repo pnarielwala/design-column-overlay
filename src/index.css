@@ -4,3 +4,11 @@ body {
   margin: auto;
   padding: 8px;
 }
+
+button:focus {
+  outline: none;
+}
+
+button {
+  cursor: pointer;
+}

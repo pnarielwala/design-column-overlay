@@ -67,10 +67,6 @@ const Popup = () => {
     window.chrome.tabs.query(
       { currentWindow: true, active: true },
       (tabs: any) => {
-        // Initialize currentTabId
-        const currentTabId: number = tabs[0].id
-        setCurrentTabId(currentTabId)
-
         // Inject contentScript into tabs
         window.chrome.tabs.executeScript(
           null,
@@ -86,10 +82,17 @@ const Popup = () => {
                   settings: SettingsT
                 }) => {
                   if (response) {
+                    setShowGridOverlay(response.visible)
+                  }
+
+                  // Initialize currentTabId
+                  const currentTabId: number = tabs[0].id
+                  setCurrentTabId(currentTabId)
+
+                  if (response) {
                     if (Object.keys(response.grids).length > 0) {
                       setGrids(response.grids)
                       setSettings(response.settings)
-                      setShowGridOverlay(response.visible)
                     } else {
                       sendTabMessage({
                         type: 'update_grid',
@@ -108,10 +111,12 @@ const Popup = () => {
 
   // Save grids whenever values change
   useEffect(() => {
-    setLocalSettings({
-      grids,
-      settings,
-    })
+    if (currentTabId) {
+      setLocalSettings({
+        grids,
+        settings,
+      })
+    }
   }, [grids, currentTabId, settings])
 
   // Update grid setting on page
@@ -179,7 +184,6 @@ const Popup = () => {
           sx={{
             backgroundColor: 'transparent',
             p: 0,
-            cursor: 'pointer',
           }}
           color={settingTab === 'breakpoints' ? 'black' : '#999999'}
           onClick={() => setSettingTab('breakpoints')}
@@ -193,7 +197,6 @@ const Popup = () => {
           sx={{
             backgroundColor: 'transparent',
             p: 0,
-            cursor: 'pointer',
           }}
           onClick={() => setSettingTab('settings')}
         >

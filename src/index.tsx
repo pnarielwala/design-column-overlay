@@ -1,10 +1,17 @@
 import React from 'react'
 import ReactDOM from 'react-dom'
-import App from './App'
+import { ThemeProvider } from 'emotion-theming'
+import theme from '@rebass/preset'
+
+import './index.css'
+
+import Popup from './Popup'
 
 ReactDOM.render(
   <React.StrictMode>
-    <App />
+    <ThemeProvider theme={theme}>
+      <Popup />
+    </ThemeProvider>
   </React.StrictMode>,
   document.getElementById('root'),
 )

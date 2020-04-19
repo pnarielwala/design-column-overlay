@@ -5,7 +5,11 @@
   "browser_action": {
     "default_popup": "index.html"
   },
-  "icons": { "16": "grid16.png", "48": "grid48.png", "128": "grid128.png" },
+  "icons": {
+    "16": "column16.png",
+    "48": "column48.png",
+    "128": "column128.png"
+  },
   "permissions": ["tabs", "activeTab", "http://*/*", "https://*/*"],
   "content_scripts": [
     {

@@ -14,7 +14,7 @@ function intializeScript() {
   }
   let grids: GridDataT = {}
   let settings: SettingsT = initSettings
-  let showGrid: boolean = false
+  let showGrid: boolean = Boolean(document.getElementById('grid-overlay-root'))
 
   function drawGrid(grid: GridT) {
     const existingRoot = document.getElementById('grid-overlay-root')
@@ -130,7 +130,11 @@ function intializeScript() {
 
       updateGrid()
     } else if (message.type === 'get_content_grid') {
-      sendResponse({ visible: showGrid, grids, settings })
+      sendResponse({
+        visible: showGrid,
+        grids,
+        settings,
+      })
     } else if (message.type === 'grid_visible') {
       showGrid = message.data
       if (showGrid) {
