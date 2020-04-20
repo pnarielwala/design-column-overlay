@@ -2,8 +2,9 @@
 
 This chrome extensions places an overlay over the current tab so that web engineers can follow configured visual guidelines
 
-<img src="./assets/screenshot.png" alt="Chrome tab with design column over on">
-<img src="./assets/screenshot_settings.png" alt="Extension settings tab">
+<img src="./assets/screenshot_breakpoints.png" alt="">
+<img src="./assets/screenshot_settings.png" alt="">
+<img src="./assets/screenshot_overlay.png" alt="">
 
 ## Installation
 
