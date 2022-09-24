@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from 'react'
-import { ChromePicker } from 'react-color'
+import React, { useState, useEffect } from 'react';
+import { ChromePicker } from 'react-color';
 
-import { Box, Flex, Button, Text } from 'rebass'
-import { Input, Switch, Label } from '@rebass/forms'
+import { Box, Flex, Button, Text } from 'rebass';
+import { Input, Switch, Label } from '@rebass/forms';
 
-import GridForm from './components/GridForm'
-import { GridT, GridDataT, Message, StoredDataT, SettingsT } from 'types'
-import { useEffectOnce } from 'react-use'
+import GridForm from './components/GridForm';
+import { GridT, GridDataT, Message, StoredDataT, SettingsT } from 'types';
+import { useEffectOnce } from 'react-use';
 
 // Allow local development without errors
 window.chrome = {
@@ -16,7 +16,7 @@ window.chrome = {
     sendMessage: () => {},
   },
   ...window.chrome,
-}
+};
 
 const sendTabMessage = (
   message: Message,
@@ -25,89 +25,91 @@ const sendTabMessage = (
   window.chrome.tabs.query(
     { currentWindow: true, active: true },
     (tabs: any) => {
-      const currentTabId: number = tabs[0].id
+      const currentTabId: number = tabs[0].id;
 
-      window.chrome.tabs.sendMessage(currentTabId, message, responseCallback)
+      window.chrome.tabs.sendMessage(currentTabId, message, responseCallback);
     },
-  )
-}
+  );
+};
 
 const initialGrid: GridT = {
   columns: '1',
   gutter: '0',
   margin: '0',
-}
+};
 
-const DEFAULT_MAX_WIDTH = '1664'
+const DEFAULT_MAX_WIDTH = '1664';
 
 const getLocalSettings = (): StoredDataT =>
-  JSON.parse(localStorage.getItem('gridSettings') ?? '{}')
+  JSON.parse(localStorage.getItem('gridSettings') ?? '{}');
 const setLocalSettings = (data: StoredDataT) => {
-  localStorage.setItem('gridSettings', JSON.stringify(data))
-}
+  localStorage.setItem('gridSettings', JSON.stringify(data));
+};
 
 const Popup = () => {
-  const [currentTabId, setCurrentTabId] = useState<number | null>(null)
-  const [grids, setGrids] = useState<GridDataT>(getLocalSettings().grids ?? {})
+  const [currentTabId, setCurrentTabId] = useState<number | null>(null);
+  const [grids, setGrids] = useState<GridDataT>(getLocalSettings().grids ?? {});
   const [settings, setSettings] = useState<SettingsT>(
     getLocalSettings().settings ?? {
       maxWidth: DEFAULT_MAX_WIDTH,
       columnColor: { r: 255, g: 0, b: 0, a: 0.2 },
     },
-  )
+  );
 
-  const [showGridOverlay, setShowGridOverlay] = useState(false)
-  const [breakpointInput, setBreakpointInput] = useState('')
+  const [showGridOverlay, setShowGridOverlay] = useState(false);
+  const [breakpointInput, setBreakpointInput] = useState('');
 
   const [settingTab, setSettingTab] = useState<'breakpoints' | 'settings'>(
     'breakpoints',
-  )
+  );
 
   useEffectOnce(() => {
     window.chrome.tabs.query(
       { currentWindow: true, active: true },
       (tabs: any) => {
         // Inject contentScript into tabs
-        window.chrome.tabs.executeScript(
-          null,
-          { file: 'contentScript.js' },
+        window.chrome.scripting.executeScript(
+          {
+            target: { tabId: tabs[0].id },
+            files: ['contentScript.js'],
+          },
           () => {
             setTimeout(() => {
               // Get grid status on the page
               sendTabMessage(
                 { type: 'get_content_grid' },
                 (response: {
-                  visible: boolean
-                  grids: GridDataT
-                  settings: SettingsT
+                  visible: boolean;
+                  grids: GridDataT;
+                  settings: SettingsT;
                 }) => {
                   if (response) {
-                    setShowGridOverlay(response.visible)
+                    setShowGridOverlay(response.visible);
                   }
 
                   // Initialize currentTabId
-                  const currentTabId: number = tabs[0].id
-                  setCurrentTabId(currentTabId)
+                  const currentTabId: number = tabs[0].id;
+                  setCurrentTabId(currentTabId);
 
                   if (response) {
                     if (Object.keys(response.grids).length > 0) {
-                      setGrids(response.grids)
-                      setSettings(response.settings)
+                      setGrids(response.grids);
+                      setSettings(response.settings);
                     } else {
                       sendTabMessage({
                         type: 'update_grid',
                         data: { grids, settings },
-                      })
+                      });
                     }
                   }
                 },
-              )
-            }, 1)
+              );
+            }, 1);
           },
-        )
+        );
       },
-    )
-  })
+    );
+  });
 
   // Save grids whenever values change
   useEffect(() => {
@@ -115,9 +117,9 @@ const Popup = () => {
       setLocalSettings({
         grids,
         settings,
-      })
+      });
     }
-  }, [grids, currentTabId, settings])
+  }, [grids, currentTabId, settings]);
 
   // Update grid setting on page
   useEffect(() => {
@@ -125,47 +127,47 @@ const Popup = () => {
       sendTabMessage({
         type: 'update_grid',
         data: { grids, settings },
-      })
+      });
     }
-  }, [currentTabId, grids, settings])
+  }, [currentTabId, grids, settings]);
 
   const handleAddGrid = () => {
     if (breakpointInput) {
       setGrids((prevGrids) => ({
         ...prevGrids,
         [breakpointInput]: initialGrid,
-      }))
+      }));
 
-      setBreakpointInput('')
+      setBreakpointInput('');
     }
-  }
+  };
 
   const handleUpdateGrid = (breakpoint: string, key: string, value: string) => {
     setGrids((prevGrids) => {
-      const grid = prevGrids[breakpoint]
+      const grid = prevGrids[breakpoint];
       const newGrids = {
         ...prevGrids,
         [breakpoint]: {
           ...grid,
           [key]: value,
         },
-      }
-      return newGrids
-    })
-  }
+      };
+      return newGrids;
+    });
+  };
 
   const handleDeleteGrid = (breakpoint: string) => {
     setGrids((prevGrids) => {
-      delete prevGrids[breakpoint]
-      return { ...prevGrids }
-    })
-  }
+      delete prevGrids[breakpoint];
+      return { ...prevGrids };
+    });
+  };
 
   const handleToggleGrid = () => {
-    const newValue = !showGridOverlay
-    setShowGridOverlay(newValue)
-    sendTabMessage({ type: 'grid_visible', data: newValue })
-  }
+    const newValue = !showGridOverlay;
+    setShowGridOverlay(newValue);
+    sendTabMessage({ type: 'grid_visible', data: newValue });
+  };
 
   return (
     <Box>
@@ -209,8 +211,8 @@ const Popup = () => {
           <Flex
             as="form"
             onSubmit={(event) => {
-              event.preventDefault()
-              handleAddGrid()
+              event.preventDefault();
+              handleAddGrid();
             }}
             flexWrap="wrap"
             my={3}
@@ -241,7 +243,7 @@ const Popup = () => {
                 updateGrid={handleUpdateGrid}
                 deleteGrid={handleDeleteGrid}
               />
-            )
+            );
           })}
         </>
       )}
@@ -258,11 +260,11 @@ const Popup = () => {
                 value={settings.maxWidth}
                 name="maxWidth"
                 onChange={(event) => {
-                  const value = event.target.value
+                  const value = event.target.value;
                   setSettings((prevSettings) => ({
                     ...prevSettings,
                     maxWidth: value,
-                  }))
+                  }));
                 }}
               />
             </Box>
@@ -272,11 +274,11 @@ const Popup = () => {
                 <ChromePicker
                   color={settings.columnColor}
                   onChangeComplete={(color) => {
-                    const value = color
+                    const value = color;
                     setSettings((prevSettings) => ({
                       ...prevSettings,
                       columnColor: value.rgb,
-                    }))
+                    }));
                   }}
                 />
               </Box>
@@ -285,7 +287,7 @@ const Popup = () => {
         </>
       )}
     </Box>
-  )
-}
+  );
+};
 
-export default Popup
+export default Popup;
